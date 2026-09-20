@@ -5,7 +5,7 @@ export function QuoteCard({
   onShowRoute,
 }: {
   quote: Quote;
-  onShowRoute?: () => void;
+  onShowRoute?: (() => void) | undefined;
 }) {
   return (
     <div className="mt-2 overflow-hidden rounded-2xl bg-card text-card-foreground ring-1 ring-border">

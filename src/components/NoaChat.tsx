@@ -11,8 +11,8 @@ interface Msg {
   id: string;
   role: "user" | "assistant";
   text: string;
-  quote?: Quote;
-  target?: MapTarget;
+  quote?: Quote | undefined;
+  target?: MapTarget | undefined;
   time: string;
 }
 
