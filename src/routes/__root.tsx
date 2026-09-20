@@ -77,14 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Smart Loads Pro" },
+      {
+        name: "description",
+        content:
+          'מוקד הובלות ותמחור בזמן אמת, איתור יעד, עלות סולר וחישוב מחירון עבור ח. סבן חומרי בניין (1994) בע"מ',
+      },
+      { name: "author", content: 'ח. סבן חומרי בניין (1994) בע"מ' },
+      { property: "og:title", content: "Smart Loads Pro" },
+      {
+        property: "og:description",
+        content:
+          'מוקד הובלות ותמחור בזמן אמת, איתור יעד, עלות סולר וחישוב מחירון עבור ח. סבן חומרי בניין (1994) בע"מ',
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -102,7 +109,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="he" dir="rtl">
       <head>
         <HeadContent />
       </head>

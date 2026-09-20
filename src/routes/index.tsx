@@ -15,7 +15,7 @@ const SabanMap = React.lazy(() => import("@/components/SabanMap"));
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "מוקד הובלות ותמחור | ח. סבן חומרי בניין (1994) בע\"מ" },
+      { title: 'מוקד הובלות ותמחור | ח. סבן חומרי בניין (1994) בע"מ' },
       {
         name: "description",
         content:
@@ -106,9 +106,7 @@ function Index() {
           <MessageCircle className="size-[calc(2.5rem*var(--ui-scale))] shrink-0" />
           <span>
             <span className="block text-[1.4rem] font-black leading-tight">💬 שאל את נועה AI</span>
-            <span className="block text-sm opacity-95">
-              איתור יעד, תמחור מהיר וחישוב עלויות
-            </span>
+            <span className="block text-sm opacity-95">איתור יעד, תמחור מהיר וחישוב עלויות</span>
           </span>
         </button>
 

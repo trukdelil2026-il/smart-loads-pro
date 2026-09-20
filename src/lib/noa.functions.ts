@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { GoogleGenAI } from "@google/genai";
 
 export interface NoaReplyInput {
   message: string;
@@ -9,63 +10,59 @@ export interface NoaReplyInput {
 export const askNoa = createServerFn({ method: "POST" })
   .inputValidator((data: NoaReplyInput) => data)
   .handler(async ({ data }) => {
-    const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) {
-      return { text: "מוקד התמחור לא מחובר כרגע. הכרטיס למטה מחושב מהמחירון הפנימי." };
-    }
+    const apiKey = process.env["GEMINI_API_KEY"];
 
     const system = [
-      "את נועה, רכזת הלוגיסטיקה והתמחור של ח. סבן חומרי בניין (1994) בע\"מ.",
+      'את נועה, רכזת הלוגיסטיקה והתמחור של ח. סבן חומרי בניין (1994) בע"מ.',
       "המגרש: רחוב החרש 10, הוד השרון. הנהגים: חכמת (מרצדס 12 טון עם מנוף) ועלי (איסוזו 5.5 טון הובלה בלבד).",
       "את מדברת עברית, ישירה, מקצועית וחמה, בסגנון וואטסאפ. תשובה קצרה: 2-4 שורות, בלי טבלאות ובלי Markdown כבד.",
       "כרטיס התמחור המדויק מוצג לצד ההודעה שלך על ידי המערכת — אל תמציאי מספרים, אל תחזרי על כל הנתונים; רק תאשרי, תוסיפי טיפ תפעולי (חניה, גישה למנוף, זמן הגעה) ותשאלי מה נדרש להמשך.",
       "אם אין כתובת בהודעה — בקשי כתובת מלאה (רחוב, מספר, עיר) וסוג הובלה (מנוף או הובלה בלבד).",
     ].join("\n");
 
-    const input = [
-      { role: "system", content: system },
-      ...data.history.slice(-8).map((m) => ({ role: m.role, content: m.text })),
-      {
-        role: "user" as const,
-        content: data.context
-          ? `${data.message}\n\n[נתוני המערכת עבור ההזמנה — למידע שלך בלבד]\n${data.context}`
-          : data.message,
-      },
-    ];
+    if (apiKey) {
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const contents = [
+          ...data.history.slice(-8).map((m) => ({
+            role: m.role === "assistant" ? ("model" as const) : ("user" as const),
+            parts: [{ text: m.text }],
+          })),
+          {
+            role: "user" as const,
+            parts: [
+              {
+                text: data.context
+                  ? `${data.message}\n\n[נתוני המערכת עבור ההזמנה — למידע שלך בלבד]\n${data.context}`
+                  : data.message,
+              },
+            ],
+          },
+        ];
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-6-astra",
-        reasoning: { effort: "low" },
-        input,
-      }),
-    });
+        const response = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents,
+          config: {
+            systemInstruction: system,
+          },
+        });
 
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`Noa AI request failed [${res.status}]: ${body}`);
-      if (res.status === 429) return { text: "יש עומס רגעי במוקד, נסה שוב בעוד רגע. הכרטיס למטה מעודכן." };
-      if (res.status === 402) return { text: "נגמרו הקרדיטים של מוקד ה-AI. הכרטיס למטה מחושב מהמחירון." };
-      return { text: "לא הצלחתי להתחבר למוקד כרגע, אבל הכרטיס למטה מחושב מהמחירון הפנימי." };
+        const text = response.text?.trim();
+        if (text) {
+          return { text };
+        }
+      } catch (err) {
+        console.error("Noa Gemini request failed:", err);
+      }
     }
 
-    const payload = (await res.json()) as {
-      output_text?: string;
-      output?: Array<{ content?: Array<{ text?: string }> }>;
+    if (data.context) {
+      return {
+        text: "קיבלתי! הנה התמחור המדויק עבור היעד מוצג בכרטיס למטה 👇 האם יש גישה נוחה למשאית או צורך במנוף לקומה?",
+      };
+    }
+    return {
+      text: "שלום! אני נועה ממוקד ח. סבן. ציין כתובת יעד (עיר ורחוב) וסוג הובלה (משאית רגילה או מנוף) ואשלוף לך תמחור מדויק מיידית.",
     };
-    const text =
-      payload.output_text?.trim() ||
-      payload.output
-        ?.flatMap((o) => o.content ?? [])
-        .map((c) => c.text ?? "")
-        .join("")
-        .trim() ||
-      "";
-
-    return { text: text || "קיבלתי. הכרטיס עם התמחור למטה 👇" };
   });

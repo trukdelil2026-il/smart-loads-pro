@@ -82,8 +82,8 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                 {t.name} · {t.driver}
               </div>
               <div className="text-muted-foreground">
-                סדרה {t.series} · {t.kmPerLiter} ק"מ לליטר · PTO {t.ptoLitersPerHour} ל'/שעה ·
-                תוספת {t.extraKmRate} ₪ לק"מ עודף
+                סדרה {t.series} · {t.kmPerLiter} ק"מ לליטר · PTO {t.ptoLitersPerHour} ל'/שעה · תוספת{" "}
+                {t.extraKmRate} ₪ לק"מ עודף
               </div>
             </div>
           ))}

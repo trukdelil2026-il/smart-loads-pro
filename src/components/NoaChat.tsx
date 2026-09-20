@@ -16,8 +16,7 @@ interface Msg {
   time: string;
 }
 
-const now = () =>
-  new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+const now = () => new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
 
 function detectTruck(text: string): TruckKind {
   if (/הובלה בלבד|בלי מנוף|ללא מנוף|איסוזו|עלי|משטח בלבד/.test(text)) return "flatbed";
@@ -70,7 +69,12 @@ export function NoaChat({
         dieselNet: settings.dieselNet,
         vatRate: settings.vatRate,
       });
-      target = { name: zone.name, lat: zone.lat, lng: zone.lng, subtitle: `ברקוד ${quote.barcode}` };
+      target = {
+        name: zone.name,
+        lat: zone.lat,
+        lng: zone.lng,
+        subtitle: `ברקוד ${quote.barcode}`,
+      };
       context = [
         `אזור: ${zone.name}`,
         `ברקוד: ${quote.barcode} (${TRUCKS[truck].series})`,
@@ -109,7 +113,11 @@ export function NoaChat({
   return (
     <div className="fixed inset-0 z-[2000] flex flex-col wa-bg">
       <header className="flex items-center gap-3 bg-[#00a884] px-3 py-2 text-white shadow-md dark:bg-[#1f2c34]">
-        <button aria-label="חזרה למפה" onClick={onClose} className="rounded-full p-2 hover:bg-white/10">
+        <button
+          aria-label="חזרה למפה"
+          onClick={onClose}
+          className="rounded-full p-2 hover:bg-white/10"
+        >
           <ArrowRight className="size-6" />
         </button>
         <div className="grid size-11 shrink-0 place-items-center rounded-full bg-white/25 text-xl">
@@ -125,10 +133,7 @@ export function NoaChat({
 
       <div ref={feed} className="flex-1 space-y-2 overflow-y-auto p-3">
         {msgs.map((m) => (
-          <div
-            key={m.id}
-            className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}
-          >
+          <div key={m.id} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
             <div
               className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
                 m.role === "user"

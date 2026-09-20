@@ -26,13 +26,7 @@ export interface Quote {
   etaMinutes: number;
 }
 
-export function buildQuote({
-  zone,
-  truck,
-  dieselNet,
-  vatRate,
-  actualKm,
-}: PricingInput): Quote {
+export function buildQuote({ zone, truck, dieselNet, vatRate, actualKm }: PricingInput): Quote {
   const spec = TRUCKS[truck];
   const km = Math.max(1, Math.round(actualKm ?? zone.km));
   const roundTripKm = km * 2;

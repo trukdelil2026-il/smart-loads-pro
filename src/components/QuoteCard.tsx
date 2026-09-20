@@ -17,10 +17,7 @@ export function QuoteCard({
         <Row label='מק"ט / ברקוד' value={String(quote.barcode)} strong />
         <Row label="משאית ונהג" value={`${quote.truckName} · ${quote.driver}`} />
         <Row label="מרחק" value={`${quote.km} ק"מ (הלוך-חזור ${quote.roundTripKm})`} />
-        <Row
-          label="סולר מוערך"
-          value={`${quote.liters} ליטר · ${shekel(quote.fuelCost)}`}
-        />
+        <Row label="סולר מוערך" value={`${quote.liters} ליטר · ${shekel(quote.fuelCost)}`} />
         <Row label="זמן הגעה מוערך" value={`${quote.etaMinutes} דקות`} />
         {quote.extraKm > 0 && (
           <Row
@@ -58,9 +55,7 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-3 px-3 py-2">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd
-        className={`text-left ${strong ? "font-bold" : ""} ${big ? "text-lg text-brand" : ""}`}
-      >
+      <dd className={`text-left ${strong ? "font-bold" : ""} ${big ? "text-lg text-brand" : ""}`}>
         {value}
       </dd>
     </div>
