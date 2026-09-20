@@ -1,6 +1,6 @@
 {
   "name": "Smart Loads Pro",
-  "description": "מוקד הובלות ותמחור בזמן אמת, איתור יעד, עלות סולר וחישוב מחירון עבור ח. סבן חומרי בניין (1994) בע\"מ",
+  "description": "נועה AI - מוקד סידור עבודה, ניתוב, תמחור ובקרת אספקות | ח. סבן חומרי בניין (1994) בע\"מ",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

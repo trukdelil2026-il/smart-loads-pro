@@ -12,13 +12,18 @@ import {
   MapPin,
   Truck,
   Building2,
-  Fuel,
-  Info,
-  ChevronRight,
-  ExternalLink,
   Plus,
   Minus,
   Navigation,
+  Check,
+  RotateCcw,
+  Sparkles,
+  LocateFixed,
+  Eye,
+  Route,
+  Share2,
+  HelpCircle,
+  X,
 } from "lucide-react";
 import { ORIGIN, ZONES, type Zone } from "@/lib/catalog";
 import { useSettings } from "@/lib/settings";
@@ -32,7 +37,8 @@ export interface MapTarget {
   zone?: Zone;
 }
 
-export type BaseLayerType = "israel_hebrew" | "satellite" | "voyager" | "dark";
+export type BaseLayerType =
+  "israel_hebrew" | "topo_hebrew" | "satellite_hybrid" | "warm_cream" | "night_mode";
 
 interface SearchResult {
   title: string;
@@ -44,7 +50,7 @@ interface SearchResult {
 }
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth radius in km
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -90,22 +96,34 @@ export default function SabanMap({
   const radiusLayerGroup = React.useRef<L.LayerGroup | null>(null);
   const routeLayerGroup = React.useRef<L.LayerGroup | null>(null);
   const measureLayerGroup = React.useRef<L.LayerGroup | null>(null);
+  const userLocationLayerGroup = React.useRef<L.LayerGroup | null>(null);
 
   // Map state & tools
   const [baseLayer, setBaseLayer] = React.useState<BaseLayerType>("israel_hebrew");
   const [showZones, setShowZones] = React.useState(true);
   const [showRadius, setShowRadius] = React.useState(true);
+  const [showTrafficSim, setShowTrafficSim] = React.useState(false);
   const [measureMode, setMeasureMode] = React.useState(false);
   const [measurePoints, setMeasurePoints] = React.useState<L.LatLng[]>([]);
+  const [measuredDistance, setMeasuredDistance] = React.useState<number | null>(null);
   const [layersMenuOpen, setLayersMenuOpen] = React.useState(false);
+  const [toolsDrawerOpen, setToolsDrawerOpen] = React.useState(false);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [currentZoom, setCurrentZoom] = React.useState(12);
+  const [activeZoneCard, setActiveZoneCard] = React.useState<Zone | null>(null);
+  const [locatingUser, setLocatingUser] = React.useState(false);
+  const [quickStatusToast, setQuickStatusToast] = React.useState<string | null>(null);
 
-  // Address lookup state inside map
+  // Address search
   const [searchQuery, setSearchQuery] = React.useState("");
   const [searchResults, setSearchResults] = React.useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
+
+  const showToast = (msg: string) => {
+    setQuickStatusToast(msg);
+    setTimeout(() => setQuickStatusToast(null), 3000);
+  };
 
   // Initialize Map
   React.useEffect(() => {
@@ -125,29 +143,48 @@ export default function SabanMap({
     radiusLayerGroup.current = L.layerGroup().addTo(map);
     routeLayerGroup.current = L.layerGroup().addTo(map);
     measureLayerGroup.current = L.layerGroup().addTo(map);
+    userLocationLayerGroup.current = L.layerGroup().addTo(map);
 
-    // Origin marker (Saban Logistics Base)
+    // Origin marker (Saban Logistics Base - הוד השרון)
     const originPin = L.marker([ORIGIN.lat, ORIGIN.lng], {
       icon: L.divIcon({
         className: "",
-        html: `<div class="saban-pin saban-pin-origin" style="width: 44px; height: 44px;">ס</div>`,
-        iconSize: [44, 44],
-        iconAnchor: [22, 22],
+        html: `
+          <div class="saban-origin-badge">
+            <span class="saban-origin-pulse"></span>
+            <div class="saban-origin-inner">
+              <span class="saban-origin-logo">ס</span>
+            </div>
+            <div class="saban-origin-label">מגרש סבן החרש 10</div>
+          </div>
+        `,
+        iconSize: [48, 48],
+        iconAnchor: [24, 24],
       }),
       zIndexOffset: 1000,
     }).addTo(map);
 
     originPin.bindPopup(
-      `<div style="font-family: inherit; direction: rtl; text-align: right; padding: 4px;">
-        <div style="font-weight: 900; font-size: 1.05rem; color: #1d4ed8; margin-bottom: 4px;">🏢 מגרש סבן מרכזי</div>
-        <div style="font-size: 0.85rem; color: #475569; margin-bottom: 6px;">החרש 10, אזור תעשייה הוד השרון</div>
-        <div style="display: flex; gap: 8px; font-size: 0.8rem; font-weight: 700; color: #0f172a;">
-          <span>נקודת יציאת משאיות ומנופים</span>
+      `<div class="saban-hebrew-popup">
+        <div class="saban-popup-header">
+          <div class="saban-popup-tag">מוקד לוגיסטי ראשי</div>
+          <h3 class="saban-popup-title">ח. סבן חומרי בניין (1994) בע״מ</h3>
+        </div>
+        <div class="saban-popup-body">
+          <p class="saban-popup-address">📍 רחוב החרש 10, אזור תעשייה הוד השרון</p>
+          <div class="saban-popup-grid">
+            <div class="saban-stat-item">
+              <span class="stat-lbl">נקודת מוצא</span>
+              <span class="stat-val">קבועה לכל חישוב</span>
+            </div>
+            <div class="saban-stat-item">
+              <span class="stat-lbl">צי משאיות</span>
+              <span class="stat-val">חכמת (מנוף) / עלי (משטח)</span>
+            </div>
+          </div>
         </div>
       </div>`,
     );
-
-    originPin.bindTooltip(ORIGIN.label, { direction: "top", className: "saban-tip" });
 
     map.on("zoomend", () => {
       setCurrentZoom(map.getZoom());
@@ -155,17 +192,26 @@ export default function SabanMap({
 
     // Measurement click handler
     map.on("click", (e: L.LeafletMouseEvent) => {
-      if (!measureMode) return;
-      setMeasurePoints((prev) => [...prev, e.latlng]);
+      // If clicking outside while measuring
+      setMeasurePoints((prev) => {
+        if (!measureModeRef.current) return prev;
+        const next = [...prev, e.latlng];
+        return next;
+      });
     });
 
     return () => {
       map.remove();
       mapRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Tile layer management with high-resolution Hebrew basemaps
+  const measureModeRef = React.useRef(measureMode);
+  React.useEffect(() => {
+    measureModeRef.current = measureMode;
+  }, [measureMode]);
+
+  // Tile layers in Hebrew with Israel-specific high-detail servers & cream/soft-blue palettes
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -174,26 +220,23 @@ export default function SabanMap({
     labelsLayerRef.current?.remove();
 
     if (baseLayer === "israel_hebrew") {
-      // Israel OSM / Hebrew localized tiles with CartoDB Voyager fallback
+      // High performance Carto Voyager with crisp Hebrew road names & cream background
       tileLayerRef.current = L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
         {
           maxZoom: 19,
           subdomains: "abcd",
-          attribution: "CartoDB / OpenStreetMap Israel",
+          attribution: "OpenStreetMap ישראל",
         },
       ).addTo(map);
-    } else if (baseLayer === "satellite") {
-      // Esri World Imagery (Satellite) + Hebrew roads/labels overlay
-      tileLayerRef.current = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        {
-          maxZoom: 19,
-          attribution: "Esri Satellite",
-        },
-      ).addTo(map);
-
-      // Carto Voyager Labels Only overlay on top of satellite
+    } else if (baseLayer === "topo_hebrew") {
+      // Topographic Hebrew terrain layer with shaded relief
+      tileLayerRef.current = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+        maxZoom: 17,
+        subdomains: "abc",
+        attribution: "OpenTopoMap",
+      }).addTo(map);
+      // Add Voyager labels layer in Hebrew on top
       labelsLayerRef.current = L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",
         {
@@ -202,18 +245,37 @@ export default function SabanMap({
           zIndex: 400,
         },
       ).addTo(map);
-    } else if (baseLayer === "dark") {
+    } else if (baseLayer === "satellite_hybrid") {
+      // Esri Satellite + Hebrew Roads and Town Labels
       tileLayerRef.current = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png",
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19,
+          attribution: "Esri תצלומי לוויין",
+        },
+      ).addTo(map);
+
+      labelsLayerRef.current = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",
+        {
+          maxZoom: 19,
+          subdomains: "abcd",
+          zIndex: 400,
+        },
+      ).addTo(map);
+    } else if (baseLayer === "warm_cream") {
+      // Warm Cream / Soft Light theme
+      tileLayerRef.current = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
         {
           maxZoom: 19,
           subdomains: "abcd",
         },
       ).addTo(map);
-    } else {
-      // Voyager standard
+    } else if (baseLayer === "night_mode") {
+      // Luxury dark navy mode
       tileLayerRef.current = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
         {
           maxZoom: 19,
           subdomains: "abcd",
@@ -221,10 +283,10 @@ export default function SabanMap({
       ).addTo(map);
     }
 
-    tileLayerRef.current.bringToBack();
+    tileLayerRef.current?.bringToBack();
   }, [baseLayer]);
 
-  // Radius concentric rings (10km, 25km, 50km from Saban yard)
+  // Concentric Rings in Cream / Cyan / Amber
   React.useEffect(() => {
     const group = radiusLayerGroup.current;
     if (!group) return;
@@ -233,20 +295,35 @@ export default function SabanMap({
     if (!showRadius) return;
 
     const rings = [
-      { km: 10, color: "#10b981", label: "טבעת מקומית - 10 ק״מ (שרון)" },
-      { km: 25, color: "#3b82f6", label: "טבעת מרכז - 25 ק״מ (גוש דן/שומרון)" },
-      { km: 50, color: "#f59e0b", label: "טבעת מורחבת - 50 ק״מ (ירושלים/שפלה/חוף)" },
+      {
+        km: 10,
+        color: "#0ea5e9",
+        fillColor: "#38bdf8",
+        label: "טבעת מקומית - 10 ק״מ (הוד השרון, שרון דרומי)",
+      },
+      {
+        km: 25,
+        color: "#2563eb",
+        fillColor: "#60a5fa",
+        label: "טבעת מרכז - 25 ק״מ (גוש דן, פתח תקווה, שומרון)",
+      },
+      {
+        km: 50,
+        color: "#d97706",
+        fillColor: "#fbbf24",
+        label: "טבעת מורחבת - 50 ק״מ (שפלה, ירושלים, חוף כרמל)",
+      },
     ];
 
-    rings.forEach(({ km, color, label }) => {
+    rings.forEach(({ km, color, fillColor, label }) => {
       const circle = L.circle([ORIGIN.lat, ORIGIN.lng], {
         radius: km * 1000,
         color,
-        weight: 1.5,
-        opacity: 0.65,
-        dashArray: "4, 6",
-        fillColor: color,
-        fillOpacity: 0.03,
+        weight: 1.8,
+        opacity: 0.7,
+        dashArray: "5, 7",
+        fillColor,
+        fillOpacity: 0.04,
       }).addTo(group);
 
       circle.bindTooltip(label, {
@@ -257,7 +334,7 @@ export default function SabanMap({
     });
   }, [showRadius]);
 
-  // Zone Markers & Interactive Catalog Layer
+  // Zone Markers with Professional Styling & Hebrew Tooltips
   React.useEffect(() => {
     const group = zonesLayerGroup.current;
     if (!group) return;
@@ -270,38 +347,57 @@ export default function SabanMap({
       const marker = L.marker([z.lat, z.lng], {
         icon: L.divIcon({
           className: "",
-          html: `<div class="saban-pin saban-pin-zone ${
-            isCurrent ? "ring-4 ring-amber-400 font-black scale-110" : ""
-          }" style="padding: 2px 7px; border-radius: 9999px; white-space: nowrap; font-size: 0.72rem;">
-            ${z.name.split("-")[0]?.trim() || z.name}
-          </div>`,
-          iconSize: [80, 24],
-          iconAnchor: [40, 12],
+          html: `
+            <div class="saban-zone-chip ${isCurrent ? "saban-zone-chip-active" : ""}">
+              <span class="saban-zone-dot"></span>
+              <span class="saban-zone-text">${z.name.split("-")[0]?.trim() || z.name}</span>
+            </div>
+          `,
+          iconSize: [88, 28],
+          iconAnchor: [44, 14],
         }),
       }).addTo(group);
 
       marker.bindPopup(
-        `<div style="font-family: inherit; direction: rtl; text-align: right; min-width: 170px;">
-          <div style="font-weight: 900; font-size: 1rem; color: #0f172a; margin-bottom: 2px;">📍 ${z.name}</div>
-          <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 6px;">ברקוד מחירון: <b>${z.code}</b></div>
-          <div style="display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 6px; font-size: 0.85rem;">
-            <span>מרחק משוער:</span>
-            <b>${z.km} ק״מ</b>
+        `<div class="saban-hebrew-popup">
+          <div class="saban-popup-header">
+            <div class="saban-popup-tag">אזור חלוקה מורשה</div>
+            <h3 class="saban-popup-title">📍 ${z.name}</h3>
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 2px;">
-            <span>מנוף מחירון:</span>
-            <b style="color: #2563eb;">${shekel(z.cranePrice)}</b>
+          <div class="saban-popup-body">
+            <div class="saban-popup-grid">
+              <div class="saban-stat-item">
+                <span class="stat-lbl">ברקוד שירות</span>
+                <span class="stat-val font-mono">${z.code}</span>
+              </div>
+              <div class="saban-stat-item">
+                <span class="stat-lbl">טווח מגרש</span>
+                <span class="stat-val">${z.km} ק״מ</span>
+              </div>
+              <div class="saban-stat-item">
+                <span class="stat-lbl">מנוף מרצדס</span>
+                <span class="stat-val text-brand">${shekel(z.cranePrice)}</span>
+              </div>
+              <div class="saban-stat-item">
+                <span class="stat-lbl">פלטה איסוזו</span>
+                <span class="stat-val text-emerald-600">סדרה 818000</span>
+              </div>
+            </div>
+            <div class="mt-2 text-center">
+              <span class="text-xs text-blue-600 font-bold">לחץ לבחירה וחישוב מהיר 👈</span>
+            </div>
           </div>
         </div>`,
       );
 
       marker.on("click", () => {
+        setActiveZoneCard(z);
         if (onSelectZone) onSelectZone(z);
       });
     });
   }, [showZones, target, onSelectZone]);
 
-  // Draw Route & Target Marker when target changes
+  // Route Rendering with Glowing Dynamic Gradient & Pulse Pin
   React.useEffect(() => {
     const map = mapRef.current;
     const group = routeLayerGroup.current;
@@ -318,35 +414,58 @@ export default function SabanMap({
     const to: L.LatLngTuple = [target.lat, target.lng];
     const dist = calculateDistanceKm(ORIGIN.lat, ORIGIN.lng, target.lat, target.lng);
 
-    // Animated Delivery Route
+    // Glowing background line
     L.polyline(arc(from, to), {
-      color: "#f59e0b",
-      weight: 6,
-      opacity: 0.95,
-      className: "saban-route",
+      color: "#0284c7",
+      weight: 9,
+      opacity: 0.35,
     }).addTo(group);
 
-    // Target Pin
+    // Main dynamic animated route line
+    L.polyline(arc(from, to), {
+      color: "#0369a1",
+      weight: 5,
+      opacity: 0.95,
+      className: "saban-route-dynamic",
+    }).addTo(group);
+
+    // Target Pin with animated target styling
     const targetMarker = L.marker(to, {
       icon: L.divIcon({
         className: "",
-        html: `<div class="saban-pin saban-pin-target"><span class="saban-pulse"></span>🎯</div>`,
+        html: `
+          <div class="saban-target-pin">
+            <span class="saban-target-ping"></span>
+            <div class="saban-target-core">
+              <span>🎯</span>
+            </div>
+            <div class="saban-target-tag">${target.name}</div>
+          </div>
+        `,
         iconSize: [44, 44],
         iconAnchor: [22, 22],
       }),
-      zIndexOffset: 900,
+      zIndexOffset: 950,
     }).addTo(group);
 
     targetMarker
       .bindPopup(
-        `<div style="font-family: inherit; direction: rtl; text-align: right; min-width: 190px;">
-          <div style="font-weight: 900; font-size: 1.05rem; color: #b45309; margin-bottom: 3px;">🎯 יעד מבוקש</div>
-          <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${target.name}</div>
-          ${target.subtitle ? `<div style="font-size: 0.8rem; color: #64748b; margin-bottom: 6px;">${target.subtitle}</div>` : ""}
-          <div style="background: #f8fafc; border-radius: 8px; padding: 6px 8px; font-size: 0.85rem; border: 1px solid #e2e8f0;">
-            <div style="display: flex; justify-content: space-between;">
-              <span>מרחק אווירי מהמגרש:</span>
-              <b>${dist} ק״מ</b>
+        `<div class="saban-hebrew-popup">
+          <div class="saban-popup-header bg-sky-800 text-white">
+            <div class="saban-popup-tag bg-white/20 text-white">יעד פריקה מבוקש</div>
+            <h3 class="saban-popup-title">${target.name}</h3>
+          </div>
+          <div class="saban-popup-body">
+            ${target.subtitle ? `<p class="saban-popup-address">${target.subtitle}</p>` : ""}
+            <div class="saban-popup-grid">
+              <div class="saban-stat-item">
+                <span class="stat-lbl">מרחק נסיעה</span>
+                <span class="stat-val font-bold text-sky-700">${dist} ק״מ</span>
+              </div>
+              <div class="saban-stat-item">
+                <span class="stat-lbl">מוצא</span>
+                <span class="stat-val">החרש 10 הוד השרון</span>
+              </div>
             </div>
           </div>
         </div>`,
@@ -356,30 +475,37 @@ export default function SabanMap({
     map.flyToBounds(L.latLngBounds([from, to]).pad(0.35), { duration: 1.1 });
   }, [target]);
 
-  // Measurement tool drawings
+  // Measurement Tool Rendering
   React.useEffect(() => {
     const group = measureLayerGroup.current;
     if (!group) return;
     group.clearLayers();
 
-    if (measurePoints.length === 0) return;
+    if (measurePoints.length === 0) {
+      setMeasuredDistance(null);
+      return;
+    }
 
     measurePoints.forEach((pt, idx) => {
       L.circleMarker(pt, {
-        radius: 6,
-        color: "#dc2626",
-        fillColor: "#ffffff",
+        radius: 7,
+        color: "#0369a1",
+        fillColor: "#fdfbf7",
         fillOpacity: 1,
         weight: 3,
       })
-        .bindTooltip(`נקודה ${idx + 1}`, { permanent: true, direction: "top" })
+        .bindTooltip(`נקודה ${idx + 1}`, {
+          permanent: true,
+          direction: "top",
+          className: "saban-tip",
+        })
         .addTo(group);
     });
 
     if (measurePoints.length > 1) {
       const latlngs = measurePoints.map((p) => [p.lat, p.lng] as L.LatLngTuple);
       L.polyline(latlngs, {
-        color: "#dc2626",
+        color: "#0284c7",
         weight: 3,
         dashArray: "6, 6",
       }).addTo(group);
@@ -393,18 +519,20 @@ export default function SabanMap({
         }
       }
 
-      const km = (totalMeters / 1000).toFixed(2);
+      const km = Math.round((totalMeters / 1000) * 100) / 100;
+      setMeasuredDistance(km);
+
       const lastPoint = measurePoints[measurePoints.length - 1];
-      if (lastPoint) {
+      if (lastPoint && mapRef.current) {
         L.popup({ direction: "top", className: "saban-tip" })
           .setLatLng(lastPoint)
           .setContent(`<b>סה״כ מרחק מדידה:</b> ${km} ק״מ (${Math.round(totalMeters)} מטר)`)
-          .openOn(mapRef.current!);
+          .openOn(mapRef.current);
       }
     }
   }, [measurePoints]);
 
-  // Address Autocomplete / Geocoding with Photon / OpenStreetMap Hebrew
+  // Hebrew Address Search with catalog matching
   const handleAddressSearch = async (val: string) => {
     setSearchQuery(val);
     if (val.trim().length < 2) {
@@ -415,9 +543,9 @@ export default function SabanMap({
     setIsSearching(true);
     try {
       const results: SearchResult[] = [];
-
-      // First check local catalog zones
       const normalized = val.trim().toLowerCase();
+
+      // 1. First search internal master catalog zones
       ZONES.forEach((z) => {
         const matches = z.terms.some((t) => t.toLowerCase().includes(normalized));
         if (matches) {
@@ -432,9 +560,9 @@ export default function SabanMap({
         }
       });
 
-      // Query Photon OpenStreetMap geocoder biased around Israel coordinates
+      // 2. Query Photon Geocoder (Israel area)
       const resp = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&lat=${ORIGIN.lat}&lon=${ORIGIN.lng}&limit=4&lang=default`,
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&lat=${ORIGIN.lat}&lon=${ORIGIN.lng}&limit=5&lang=default`,
       );
       if (resp.ok) {
         const data = (await resp.json()) as {
@@ -479,64 +607,106 @@ export default function SabanMap({
     }
 
     mapRef.current?.flyTo([item.lat, item.lng], 15, { duration: 1.2 });
+    showToast(`מיקוד ביעד: ${item.title}`);
   };
 
-  // Toggle Fullscreen
+  // Fullscreen toggle
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
       containerRef.current.requestFullscreen().catch(() => {});
       setIsFullscreen(true);
+      showToast("תצוגת מסך מלא הופעלה");
     } else {
       document.exitFullscreen().catch(() => {});
       setIsFullscreen(false);
+      showToast("יציאה ממסך מלא");
     }
   };
 
-  // User location GPS
+  // GPS User Location
   const locateUser = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      showToast("שירותי מיקום אינם נתמכים בדפדפן זה");
+      return;
+    }
+    setLocatingUser(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setLocatingUser(false);
         const { latitude, longitude } = pos.coords;
         mapRef.current?.flyTo([latitude, longitude], 15, { duration: 1.2 });
-        L.circleMarker([latitude, longitude], {
-          radius: 8,
-          color: "#2563eb",
-          fillColor: "#60a5fa",
-          fillOpacity: 0.9,
-          weight: 2,
-        })
-          .addTo(mapRef.current!)
-          .bindTooltip("המיקום הנוכחי שלך", { permanent: true, direction: "top" });
+
+        const group = userLocationLayerGroup.current;
+        if (group) {
+          group.clearLayers();
+          L.circleMarker([latitude, longitude], {
+            radius: 9,
+            color: "#0284c7",
+            fillColor: "#38bdf8",
+            fillOpacity: 0.9,
+            weight: 3,
+          })
+            .addTo(group)
+            .bindTooltip("המיקום הנוכחי שלך", {
+              permanent: true,
+              direction: "top",
+              className: "saban-tip",
+            });
+        }
+        showToast("מיקומך אותר בהצלחה במפה");
       },
-      (err) => console.warn("GPS error", err),
+      (err) => {
+        setLocatingUser(false);
+        console.warn("GPS error", err);
+        showToast("לא ניתן לגשת למיקום GPS");
+      },
       { enableHighAccuracy: true },
     );
   };
 
-  const btnStyle =
-    "grid h-11 w-11 place-items-center rounded-2xl bg-card text-foreground shadow-md ring-1 ring-border transition hover:bg-muted active:scale-95 text-lg font-bold";
+  // Return to Saban yard
+  const centerDepot = () => {
+    if (target && mapRef.current) {
+      mapRef.current.flyToBounds(
+        L.latLngBounds([
+          [ORIGIN.lat, ORIGIN.lng],
+          [target.lat, target.lng],
+        ]).pad(0.35),
+        { duration: 1 },
+      );
+      showToast("הצגת מסלול מלא: מגרש סבן ⇄ יעד");
+    } else if (mapRef.current) {
+      mapRef.current.flyTo([ORIGIN.lat, ORIGIN.lng], 12, { duration: 1 });
+      showToast("מיקוד במגרש סבן מרכזי - הוד השרון");
+    }
+  };
+
+  const mapBtnClass =
+    "group flex size-11 items-center justify-center rounded-2xl bg-[#fdfbf7] text-[#0f172a] shadow-md ring-1 ring-[#0284c7]/20 transition-all duration-200 hover:bg-[#e0f2fe] hover:text-[#0369a1] hover:shadow-lg active:scale-95 dark:bg-[#1e293b] dark:text-[#f8fafc] dark:ring-white/10 dark:hover:bg-[#0c4a6e]";
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-muted select-none">
+    <div
+      ref={containerRef}
+      className="relative h-full w-full overflow-hidden bg-[#fdfbf7] select-none text-right font-sans"
+    >
       {/* Map Canvas */}
       <div ref={holderRef} className="h-full w-full" />
 
-      {/* Top Search & Smart Address Bar */}
-      <div className="absolute top-3 right-3 left-3 z-[600] flex max-w-lg items-center gap-2">
+      {/* Top Floating Navigation Bar (Smart Search + Quick Layers) */}
+      <div className="absolute top-3 right-3 left-3 z-[600] flex max-w-xl items-center gap-2">
         <div className="relative flex-1">
-          <div className="flex items-center gap-2 rounded-2xl bg-card/95 px-3 py-2 text-foreground shadow-lg ring-1 ring-border backdrop-blur-md">
-            <Search className="size-5 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2.5 rounded-2xl bg-[#fdfbf7]/95 px-3.5 py-2.5 text-[#0f172a] shadow-xl ring-1 ring-[#0284c7]/30 backdrop-blur-md dark:bg-[#0f172a]/95 dark:text-[#f8fafc] dark:ring-white/15">
+            <Search className="size-5 text-[#0284c7] shrink-0" />
             <input
               value={searchQuery}
               onChange={(e) => handleAddressSearch(e.target.value)}
               onFocus={() => setSearchOpen(true)}
-              placeholder="חיפוש כתובת, רחוב או אזור חלוקה..."
-              className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground"
+              placeholder="חיפוש כתובת, עיר או אזור חלוקה בעברית..."
+              className="w-full bg-transparent text-sm font-bold outline-none placeholder:text-muted-foreground"
             />
             {isSearching && (
-              <span className="text-xs text-muted-foreground animate-pulse">מחפש...</span>
+              <span className="text-xs font-semibold text-[#0284c7] animate-pulse">מחפש...</span>
             )}
             {searchQuery && (
               <button
@@ -544,32 +714,49 @@ export default function SabanMap({
                   setSearchQuery("");
                   setSearchResults([]);
                 }}
-                className="text-xs text-muted-foreground hover:text-foreground"
+                className="grid size-6 place-items-center rounded-full bg-muted/80 text-xs hover:bg-muted"
+                title="נקה חיפוש"
               >
-                ✕
+                <X className="size-3.5" />
               </button>
             )}
           </div>
 
-          {/* Autocomplete dropdown */}
+          {/* Autocomplete Search Dropdown */}
           {searchOpen && searchResults.length > 0 && (
-            <div className="absolute top-full right-0 left-0 mt-2 max-h-60 overflow-y-auto rounded-2xl bg-card p-2 shadow-2xl ring-1 ring-border backdrop-blur-xl">
+            <div className="absolute top-full right-0 left-0 mt-2 max-h-72 overflow-y-auto rounded-2xl bg-[#fdfbf7]/98 p-2 shadow-2xl ring-1 ring-[#0284c7]/20 backdrop-blur-xl dark:bg-[#0f172a]/98">
+              <div className="px-2 py-1 text-[11px] font-black text-[#0284c7] border-b border-border/50 mb-1">
+                תוצאות מאומתות מקטלוג סבן ומאגרי מיפוי ישראל:
+              </div>
               {searchResults.map((r, i) => (
                 <button
                   key={i}
                   onClick={() => selectSearchResult(r)}
-                  className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-right transition hover:bg-muted"
+                  className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-right transition hover:bg-[#e0f2fe] dark:hover:bg-[#0c4a6e]/40"
                 >
-                  <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="flex items-center gap-2.5 overflow-hidden">
                     {r.type === "zone" ? (
-                      <Truck className="size-4 text-amber-500 shrink-0" />
+                      <span className="grid size-7 place-items-center rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300 shrink-0">
+                        <Truck className="size-4" />
+                      </span>
                     ) : (
-                      <MapPin className="size-4 text-blue-500 shrink-0" />
+                      <span className="grid size-7 place-items-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 shrink-0">
+                        <MapPin className="size-4" />
+                      </span>
                     )}
-                    <span className="truncate text-sm font-bold">{r.title}</span>
+                    <div>
+                      <div className="truncate text-xs sm:text-sm font-black text-foreground">
+                        {r.title}
+                      </div>
+                      {r.zone && (
+                        <div className="text-[11px] text-muted-foreground">
+                          ברקוד {r.zone.code} · מנוף {shekel(r.zone.cranePrice)}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {r.distanceKm !== undefined && (
-                    <span className="text-xs font-semibold text-muted-foreground shrink-0">
+                    <span className="rounded-lg bg-[#0284c7]/10 px-2 py-1 text-xs font-black text-[#0284c7] shrink-0">
                       {r.distanceKm} ק״מ
                     </span>
                   )}
@@ -579,116 +766,221 @@ export default function SabanMap({
           )}
         </div>
 
-        {/* Quick Layer Switcher Button */}
+        {/* Layer switch button */}
         <button
           aria-label="שכבות מפה"
-          onClick={() => setLayersMenuOpen((v) => !v)}
-          className={`${btnStyle} ${layersMenuOpen ? "bg-brand text-brand-foreground" : ""}`}
-          title="שכבות מפה וכלי עזר"
+          onClick={() => {
+            setLayersMenuOpen((v) => !v);
+            setToolsDrawerOpen(false);
+          }}
+          className={`${mapBtnClass} ${layersMenuOpen ? "bg-[#0284c7] text-white shadow-sky-500/30" : ""}`}
+          title="שכבות מפה ותצוגה"
         >
           <Layers className="size-5" />
         </button>
+
+        {/* Tools switch button */}
+        <button
+          aria-label="כלי עזר לוגיסטיים"
+          onClick={() => {
+            setToolsDrawerOpen((v) => !v);
+            setLayersMenuOpen(false);
+          }}
+          className={`${mapBtnClass} ${toolsDrawerOpen ? "bg-[#0284c7] text-white shadow-sky-500/30" : ""}`}
+          title="כלי עזר ומדידה"
+        >
+          <Ruler className="size-5" />
+        </button>
       </div>
 
-      {/* Layers & Tools Drawer/Panel */}
+      {/* Layer Options Drawer */}
       {layersMenuOpen && (
-        <div className="absolute top-16 right-3 z-[600] w-72 rounded-3xl bg-card/95 p-4 shadow-2xl ring-1 ring-border backdrop-blur-xl animate-in fade-in zoom-in-95">
-          <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
-            <h4 className="text-base font-black text-foreground flex items-center gap-2">
-              <Layers className="size-4 text-brand" /> שכבות וכלי עזר
-            </h4>
+        <div className="absolute top-16 right-3 z-[600] w-80 rounded-3xl bg-[#fdfbf7]/98 p-4 shadow-2xl ring-1 ring-[#0284c7]/30 backdrop-blur-xl dark:bg-[#0f172a]/98 animate-in fade-in zoom-in-95">
+          <div className="mb-3 flex items-center justify-between border-b border-border/80 pb-2.5">
+            <div className="flex items-center gap-2 text-sm font-black text-foreground">
+              <Layers className="size-4 text-[#0284c7]" />
+              <span>שכבות מיפוי בעברית</span>
+            </div>
             <button
               onClick={() => setLayersMenuOpen(false)}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="grid size-6 place-items-center rounded-full hover:bg-muted text-muted-foreground"
             >
-              ✕
+              <X className="size-4" />
             </button>
           </div>
 
-          {/* Base Layer Chooser */}
+          {/* Base Layer Switcher */}
           <div className="space-y-2 mb-4">
-            <label className="text-xs font-bold text-muted-foreground">סגנון תצוגת מפה</label>
+            <span className="text-[11px] font-black text-muted-foreground">
+              סגנון תצוגה עברי חכם:
+            </span>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { id: "israel_hebrew", name: "עברית מפורטת", icon: "🗺️" },
-                { id: "satellite", name: "לוויין + כבישים", icon: "🛰️" },
-                { id: "voyager", name: "קלאסי נקי", icon: "🏙️" },
-                { id: "dark", name: "מצב לילה", icon: "🌙" },
+                {
+                  id: "israel_hebrew",
+                  name: "עברית מפורטת (ברירת מחדל)",
+                  icon: "🗺️",
+                  hint: "רחובות וערים",
+                },
+                {
+                  id: "satellite_hybrid",
+                  name: "תצלומי לוויין + שמות",
+                  icon: "🛰️",
+                  hint: "היברידי",
+                },
+                { id: "warm_cream", name: "שמנת בהירה", icon: "🏙️", hint: "עיצוב נקי" },
+                { id: "topo_hebrew", name: "טופוגרפי + תבליט", icon: "⛰️", hint: "עליות וטופו" },
+                { id: "night_mode", name: "מצב לילה כהה", icon: "🌙", hint: "נהיגת לילה" },
               ].map((layer) => (
                 <button
                   key={layer.id}
-                  onClick={() => setBaseLayer(layer.id as BaseLayerType)}
-                  className={`flex flex-col items-center justify-center p-2 rounded-xl text-xs font-bold border transition ${
+                  onClick={() => {
+                    setBaseLayer(layer.id as BaseLayerType);
+                    showToast(`סגנון מפה הוחלף: ${layer.name}`);
+                  }}
+                  className={`flex flex-col items-start p-2.5 rounded-2xl text-xs font-bold border transition text-right ${
                     baseLayer === layer.id
-                      ? "border-brand bg-brand/10 text-brand"
-                      : "border-border bg-background/50 hover:bg-muted"
+                      ? "border-[#0284c7] bg-[#e0f2fe] text-[#0369a1] shadow-xs dark:bg-sky-950 dark:border-sky-400"
+                      : "border-border bg-background/50 hover:bg-muted/60"
                   }`}
                 >
-                  <span className="text-lg mb-1">{layer.icon}</span>
-                  {layer.name}
+                  <div className="flex items-center gap-1.5 font-black">
+                    <span>{layer.icon}</span>
+                    <span className="truncate">{layer.name}</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">{layer.hint}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Layer Visibility Toggles */}
-          <div className="space-y-2 border-t border-border pt-3">
-            <label className="text-xs font-bold text-muted-foreground">שכבות פעילות</label>
+          {/* Overlay Toggles */}
+          <div className="space-y-2 border-t border-border/80 pt-3">
+            <span className="text-[11px] font-black text-muted-foreground">שכבות פעילות במפה:</span>
 
-            <label className="flex items-center justify-between cursor-pointer rounded-xl p-2 hover:bg-muted text-sm font-semibold">
+            <label className="flex items-center justify-between cursor-pointer rounded-2xl p-2.5 hover:bg-[#e0f2fe]/50 text-xs font-bold ring-1 ring-border/50">
               <span className="flex items-center gap-2">
-                <Truck className="size-4 text-blue-500" /> אזורי מחירון ({ZONES.length})
+                <Truck className="size-4 text-[#0284c7]" />
+                <span>הצג אזורי חלוקה ({ZONES.length})</span>
               </span>
               <input
                 type="checkbox"
                 checked={showZones}
-                onChange={(e) => setShowZones(e.target.checked)}
-                className="size-4 accent-brand cursor-pointer rounded"
+                onChange={(e) => {
+                  setShowZones(e.target.checked);
+                  showToast(e.target.checked ? "שכבת אזורים הוצגה" : "שכבת אזורים הוסתרה");
+                }}
+                className="size-4 accent-[#0284c7] cursor-pointer rounded"
               />
             </label>
 
-            <label className="flex items-center justify-between cursor-pointer rounded-xl p-2 hover:bg-muted text-sm font-semibold">
+            <label className="flex items-center justify-between cursor-pointer rounded-2xl p-2.5 hover:bg-[#e0f2fe]/50 text-xs font-bold ring-1 ring-border/50">
               <span className="flex items-center gap-2">
-                <Compass className="size-4 text-emerald-500" /> טבעות טווח (10/25/50 ק״מ)
+                <Compass className="size-4 text-emerald-600" />
+                <span>טבעות מרחק (10 / 25 / 50 ק״מ)</span>
               </span>
               <input
                 type="checkbox"
                 checked={showRadius}
-                onChange={(e) => setShowRadius(e.target.checked)}
-                className="size-4 accent-brand cursor-pointer rounded"
+                onChange={(e) => {
+                  setShowRadius(e.target.checked);
+                  showToast(e.target.checked ? "טבעות מרחק הוצגו" : "טבעות מרחק הוסתרו");
+                }}
+                className="size-4 accent-[#0284c7] cursor-pointer rounded"
               />
             </label>
           </div>
+        </div>
+      )}
 
-          {/* Utilities */}
-          <div className="space-y-2 border-t border-border pt-3 mt-3">
-            <label className="text-xs font-bold text-muted-foreground">כלי מדידה וניווט</label>
-
+      {/* Tools Drawer (Measurement, Distance, Reset) */}
+      {toolsDrawerOpen && (
+        <div className="absolute top-16 right-3 z-[600] w-80 rounded-3xl bg-[#fdfbf7]/98 p-4 shadow-2xl ring-1 ring-[#0284c7]/30 backdrop-blur-xl dark:bg-[#0f172a]/98 animate-in fade-in zoom-in-95">
+          <div className="mb-3 flex items-center justify-between border-b border-border/80 pb-2.5">
+            <div className="flex items-center gap-2 text-sm font-black text-foreground">
+              <Ruler className="size-4 text-[#0284c7]" />
+              <span>כלי עזר ומדידה דינאמיים</span>
+            </div>
             <button
-              onClick={() => {
-                setMeasureMode((m) => !m);
-                setMeasurePoints([]);
-              }}
-              className={`flex w-full items-center justify-between rounded-xl p-2 text-sm font-bold border transition ${
-                measureMode
-                  ? "border-red-500 bg-red-500/10 text-red-600"
-                  : "border-border bg-background/60 hover:bg-muted"
-              }`}
+              onClick={() => setToolsDrawerOpen(false)}
+              className="grid size-6 place-items-center rounded-full hover:bg-muted text-muted-foreground"
             >
-              <span className="flex items-center gap-2">
-                <Ruler className="size-4" /> כלי מדידת מרחק אווירי
-              </span>
-              <span className="text-xs">{measureMode ? "פעיל (לחץ במפה)" : "הפעל"}</span>
+              <X className="size-4" />
             </button>
+          </div>
 
-            {measureMode && measurePoints.length > 0 && (
+          <div className="space-y-3">
+            {/* Air distance measuring tool */}
+            <div className="rounded-2xl bg-muted/60 p-3 space-y-2 ring-1 ring-border/50">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-foreground flex items-center gap-1.5">
+                  <Ruler className="size-4 text-[#0284c7]" />
+                  מדידת מרחק אווירי ומסלול
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    measureMode ? "bg-red-500 text-white" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {measureMode ? "פעיל" : "כבוי"}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                הפעל את המודד ולחץ במפה לסימון נקודות ציון למדידת מרחק בקילומטרים.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const next = !measureMode;
+                    setMeasureMode(next);
+                    if (!next) setMeasurePoints([]);
+                    showToast(next ? "מצב מדידה הופעל — הקלק במפה לסימון" : "מצב מדידה בוטל");
+                  }}
+                  className={`flex-1 rounded-xl py-2 px-3 text-xs font-black transition ${
+                    measureMode
+                      ? "bg-red-600 text-white hover:bg-red-700"
+                      : "bg-[#0284c7] text-white hover:bg-[#0369a1]"
+                  }`}
+                >
+                  {measureMode ? "סיום מדידה" : "הפעל מדידה"}
+                </button>
+                {measurePoints.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setMeasurePoints([]);
+                      showToast("נקודות המדידה אופסו");
+                    }}
+                    className="rounded-xl bg-background px-3 py-2 text-xs font-bold text-red-600 hover:bg-muted border border-border"
+                  >
+                    איפוס
+                  </button>
+                )}
+              </div>
+              {measuredDistance !== null && (
+                <div className="rounded-xl bg-sky-100 p-2 text-center text-xs font-black text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                  מרחק שנמדד: {measuredDistance} ק״מ
+                </div>
+              )}
+            </div>
+
+            {/* Quick Yard Info Card */}
+            <div className="rounded-2xl border border-sky-200 bg-sky-50/50 p-3 text-xs space-y-1 dark:border-sky-900 dark:bg-sky-950/40">
+              <div className="font-black text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                <Building2 className="size-4 text-[#0284c7]" />
+                <span>מגרש סבן מרכזי - הוד השרון</span>
+              </div>
+              <div className="text-muted-foreground">החרש 10, אזור תעשייה הוד השרון</div>
+              <div className="text-[11px] text-muted-foreground font-mono">
+                Lat: {ORIGIN.lat}, Lng: {ORIGIN.lng}
+              </div>
               <button
-                onClick={() => setMeasurePoints([])}
-                className="w-full text-center text-xs text-red-500 font-bold hover:underline"
+                onClick={centerDepot}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0284c7] py-1.5 text-xs font-black text-white hover:bg-[#0369a1]"
               >
-                איפוס נקודות מדידה
+                <LocateFixed className="size-3.5" />
+                <span>מרכז תצוגה למגרש</span>
               </button>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -697,7 +989,7 @@ export default function SabanMap({
       <div className="absolute bottom-4 left-4 z-[500] flex flex-col gap-2">
         <button
           aria-label="מסך מלא"
-          className={btnStyle}
+          className={mapBtnClass}
           onClick={toggleFullscreen}
           title={isFullscreen ? "יציאה ממסך מלא" : "מסך מלא"}
         >
@@ -705,63 +997,119 @@ export default function SabanMap({
         </button>
 
         <button
-          aria-label="המיקום שלי"
-          className={btnStyle}
+          aria-label="אתר מיקום נוכחי"
+          className={`${mapBtnClass} ${locatingUser ? "animate-spin text-[#0284c7]" : ""}`}
           onClick={locateUser}
-          title="אתר את המיקום שלי"
+          title="אתר את המיקום שלי ב-GPS"
         >
-          <Crosshair className="size-5 text-blue-500" />
+          <Crosshair className="size-5 text-[#0284c7]" />
         </button>
 
         <button
           aria-label="התקרבות"
-          className={btnStyle}
+          className={mapBtnClass}
           onClick={() => mapRef.current?.zoomIn()}
-          title="התקרבות"
+          title="התקרבות (Zoom In)"
         >
           <Plus className="size-5" />
         </button>
 
         <button
           aria-label="התרחקות"
-          className={btnStyle}
+          className={mapBtnClass}
           onClick={() => mapRef.current?.zoomOut()}
-          title="התרחקות"
+          title="התרחקות (Zoom Out)"
         >
           <Minus className="size-5" />
         </button>
 
         <button
-          aria-label="חזרה למגרש"
-          className={`${btnStyle} bg-brand text-brand-foreground hover:bg-brand/90`}
-          onClick={() =>
-            target
-              ? mapRef.current?.flyToBounds(
-                  L.latLngBounds([
-                    [ORIGIN.lat, ORIGIN.lng],
-                    [target.lat, target.lng],
-                  ]).pad(0.35),
-                )
-              : mapRef.current?.flyTo([ORIGIN.lat, ORIGIN.lng], 12)
-          }
+          aria-label="מרכז מגרש סבן"
+          className={`${mapBtnClass} bg-[#0284c7] text-white hover:bg-[#0369a1] hover:text-white dark:bg-[#0284c7] dark:text-white shadow-sky-500/20`}
+          onClick={centerDepot}
           title="מרכז מגרש ח. סבן (הוד השרון)"
         >
           <Building2 className="size-5" />
         </button>
       </div>
 
+      {/* Status feedback toast */}
+      {quickStatusToast && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[700] rounded-2xl bg-[#0f172a]/90 px-4 py-2 text-xs font-black text-white shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2">
+          {quickStatusToast}
+        </div>
+      )}
+
+      {/* Dynamic Zone Details Card (when selected on map) */}
+      {activeZoneCard && (
+        <div className="absolute bottom-14 right-4 z-[500] max-w-xs w-full rounded-3xl bg-[#fdfbf7]/98 p-3.5 shadow-2xl ring-1 ring-[#0284c7]/30 backdrop-blur-xl dark:bg-[#0f172a]/98 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-black text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                ברקוד {activeZoneCard.code}
+              </span>
+              <h4 className="mt-1 text-sm font-black text-foreground">{activeZoneCard.name}</h4>
+            </div>
+            <button
+              onClick={() => setActiveZoneCard(null)}
+              className="grid size-5 place-items-center rounded-full hover:bg-muted text-muted-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl bg-muted/60 p-1.5 text-center">
+              <span className="block text-[10px] text-muted-foreground">טווח מהמגרש</span>
+              <span className="font-black text-foreground">{activeZoneCard.km} ק״מ</span>
+            </div>
+            <div className="rounded-xl bg-sky-50 p-1.5 text-center dark:bg-sky-950/60">
+              <span className="block text-[10px] text-sky-700 dark:text-sky-300">מחיר מנוף</span>
+              <span className="font-black text-sky-900 dark:text-sky-200">
+                {shekel(activeZoneCard.cranePrice)}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-2.5 flex gap-1.5">
+            <button
+              onClick={() => {
+                if (onSelectZone) onSelectZone(activeZoneCard);
+                showToast(`אזור ${activeZoneCard.name} נבחר לחישוב`);
+              }}
+              className="flex-1 rounded-xl bg-[#0284c7] py-1.5 text-xs font-black text-white hover:bg-[#0369a1]"
+            >
+              בחר יעד זה לחישוב
+            </button>
+            <button
+              onClick={() => {
+                mapRef.current?.flyTo([activeZoneCard.lat, activeZoneCard.lng], 15, {
+                  duration: 1,
+                });
+              }}
+              className="rounded-xl bg-muted px-2.5 py-1.5 text-xs font-bold hover:bg-muted/80"
+              title="מיקוד"
+            >
+              🔍
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Map Legend & Scale Info (Bottom Right) */}
       <div className="absolute bottom-3 right-3 z-[500] pointer-events-none flex flex-col items-end gap-1">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-xl bg-card/90 px-3 py-1.5 text-xs font-bold text-foreground shadow-md ring-1 ring-border backdrop-blur-md">
-          <span className="flex items-center gap-1">
-            <span className="size-2.5 rounded-full bg-blue-600 inline-block" /> מגרש סבן
+        <div className="pointer-events-auto flex items-center gap-2.5 rounded-2xl bg-[#fdfbf7]/95 px-3 py-1.5 text-xs font-bold text-[#0f172a] shadow-lg ring-1 ring-[#0284c7]/20 backdrop-blur-md dark:bg-[#0f172a]/95 dark:text-[#f8fafc]">
+          <span className="flex items-center gap-1.5">
+            <span className="size-3 rounded-full bg-[#0284c7] shadow-xs inline-block" />
+            <span>מגרש סבן</span>
           </span>
-          <span className="text-muted-foreground">|</span>
-          <span className="flex items-center gap-1">
-            <span className="size-2.5 rounded-full bg-amber-500 inline-block" /> מסלול
+          <span className="text-muted-foreground/40">|</span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-3 rounded-full bg-sky-400 inline-block" />
+            <span>מסלול שינוע</span>
           </span>
-          <span className="text-muted-foreground">|</span>
-          <span className="text-muted-foreground">זום: {currentZoom}</span>
+          <span className="text-muted-foreground/40">|</span>
+          <span className="text-muted-foreground text-[11px]">זום: {currentZoom}</span>
         </div>
       </div>
     </div>

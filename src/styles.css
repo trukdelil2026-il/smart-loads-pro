@@ -51,6 +51,8 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -95,28 +97,32 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+  --brand: oklch(0.52 0.19 240); /* Saban distinctive royal electric blue */
+  --brand-foreground: oklch(0.99 0 0);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
+  --background: oklch(0.14 0.025 255);
+  --foreground: oklch(0.985 0.005 250);
+  --card: oklch(0.2 0.03 255);
+  --card-foreground: oklch(0.985 0.005 250);
+  --popover: oklch(0.2 0.03 255);
+  --popover-foreground: oklch(0.985 0.005 250);
   --primary: oklch(0.929 0.013 255.508);
   --primary-foreground: oklch(0.208 0.042 265.755);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
+  --muted: oklch(0.25 0.025 255);
+  --muted-foreground: oklch(0.75 0.03 255);
   --accent: oklch(0.279 0.041 260.031);
   --accent-foreground: oklch(0.984 0.003 247.858);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.65 0.15 240);
+  --brand: oklch(0.65 0.18 240);
+  --brand-foreground: oklch(0.99 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -137,118 +143,295 @@
     border-color: var(--color-border);
   }
 
+  html {
+    font-family: 'Heebo', 'Rubik', system-ui, -apple-system, sans-serif;
+  }
+
   body {
+    font-family: 'Heebo', 'Rubik', system-ui, -apple-system, sans-serif;
     background-color: var(--color-background);
     color: var(--color-foreground);
+    letter-spacing: -0.015em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Rubik', 'Heebo', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.025em;
   }
 }
 
 /* Saban Map Markers, Pins & Tooltips */
-.saban-pin {
+.saban-origin-badge {
+  position: relative;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
+}
+
+.saban-origin-inner {
+  width: 44px;
+  height: 44px;
   border-radius: 9999px;
-  font-weight: 900;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 3px solid #fdfbf7;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  user-select: none;
+  z-index: 10;
 }
 
-.saban-pin:hover {
-  transform: scale(1.15);
-  z-index: 9999 !important;
-}
-
-.saban-pin-origin {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+.saban-origin-logo {
   color: #ffffff;
-  border: 3px solid #ffffff;
-  font-size: 1.25rem;
-}
-
-.saban-pin-target {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #ffffff;
-  border: 3px solid #ffffff;
   font-size: 1.35rem;
-  position: relative;
+  font-weight: 900;
+  line-height: 1;
 }
 
-.saban-pin-zone {
-  background: #ffffff;
-  color: #1e293b;
-  border: 2px solid #0284c7;
-  font-size: 0.75rem;
-  font-weight: 800;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-}
-
-.dark .saban-pin-zone {
-  background: #0f172a;
-  color: #f1f5f9;
-  border-color: #38bdf8;
-}
-
-.saban-pulse {
+.saban-origin-pulse {
   position: absolute;
   inset: -6px;
   border-radius: 9999px;
-  border: 2px solid #f59e0b;
+  border: 2px solid #38bdf8;
+  animation: sabanPulseAnim 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  pointer-events: none;
+}
+
+.saban-origin-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  white-space: nowrap;
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+
+.saban-zone-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: #fdfbf7;
+  color: #0f172a;
+  border: 1.5px solid #0284c7;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.saban-zone-chip:hover {
+  transform: scale(1.08) translateY(-2px);
+  border-color: #0369a1;
+  background: #e0f2fe;
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.25);
+}
+
+.saban-zone-chip-active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #fdfbf7 !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45) !important;
+  transform: scale(1.12);
+}
+
+.saban-zone-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #0284c7;
+}
+
+.saban-zone-chip-active .saban-zone-dot {
+  background: #ffffff;
+}
+
+.saban-target-pin {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+.saban-target-core {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 3px solid #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  box-shadow: 0 6px 20px rgba(3, 105, 161, 0.4);
+  z-index: 10;
+}
+
+.saban-target-ping {
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2.5px solid #38bdf8;
   animation: sabanPulseAnim 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
   pointer-events: none;
 }
 
-@keyframes sabanPulseAnim {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.9;
-  }
-  100% {
-    transform: scale(1.8);
-    opacity: 0;
-  }
+.saban-target-tag {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 3px;
+  white-space: nowrap;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+  pointer-events: none;
+}
+
+.saban-hebrew-popup {
+  font-family: inherit;
+  direction: rtl;
+  text-align: right;
+  min-width: 200px;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+
+.saban-popup-header {
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+}
+
+.saban-popup-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.saban-popup-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.saban-popup-body {
+  padding: 10px 14px;
+  background: #fdfbf7;
+  color: #0f172a;
+}
+
+.saban-popup-address {
+  margin: 0 0 8px 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.saban-popup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  background: #ffffff;
+  padding: 8px;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(2, 132, 199, 0.15);
+}
+
+.saban-stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-lbl {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.stat-val {
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #0f172a;
 }
 
 .saban-tip {
   font-family: inherit;
   direction: rtl;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 800;
   border-radius: 0.75rem;
   padding: 4px 10px;
-  background-color: var(--color-card, #ffffff);
-  color: var(--color-foreground, #0f172a);
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: #fdfbf7;
+  color: #0f172a;
+  border: 1px solid rgba(2, 132, 199, 0.25);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.saban-tip::before {
-  border-top-color: var(--color-card, #ffffff) !important;
-}
-
-.leaflet-popup-content-wrapper {
-  direction: rtl;
-  text-align: right;
-  border-radius: 1rem !important;
-  font-family: inherit;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25) !important;
-  border: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-card, #ffffff) !important;
-  color: var(--color-foreground, #0f172a) !important;
-  padding: 4px !important;
-}
-
-.leaflet-popup-tip {
-  background: var(--color-card, #ffffff) !important;
-}
-
-.saban-route {
-  stroke-dasharray: 8 6;
-  animation: sabanDashAnim 1.5s linear infinite;
+.saban-route-dynamic {
+  stroke-dasharray: 10 7;
+  animation: sabanDashAnim 1.4s linear infinite;
 }
 
 @keyframes sabanDashAnim {
   to {
-    stroke-dashoffset: -28;
+    stroke-dashoffset: -34;
   }
+}
+
+@keyframes sabanPulseAnim {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 14px 30px -5px rgba(2, 132, 199, 0.22) !important;
+  border: 1px solid rgba(2, 132, 199, 0.2) !important;
+  background: #fdfbf7 !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4;
+}
+
+.leaflet-popup-tip {
+  background: #fdfbf7 !important;
 }

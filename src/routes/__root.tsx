@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { SettingsProvider } from "../lib/settings";
 
 function NotFoundComponent() {
   return (
@@ -81,19 +82,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          'מוקד הובלות ותמחור בזמן אמת, איתור יעד, עלות סולר וחישוב מחירון עבור ח. סבן חומרי בניין (1994) בע"מ',
+          'נועה AI - מוקד סידור עבודה, ניתוב, תמחור ובקרת אספקות | ח. סבן חומרי בניין (1994) בע"מ',
       },
       { name: "author", content: 'ח. סבן חומרי בניין (1994) בע"מ' },
       { property: "og:title", content: "Smart Loads Pro" },
       {
         property: "og:description",
         content:
-          'מוקד הובלות ותמחור בזמן אמת, איתור יעד, עלות סולר וחישוב מחירון עבור ח. סבן חומרי בניין (1994) בע"מ',
+          'נועה AI - מוקד סידור עבודה, ניתוב, תמחור ובקרת אספקות | ח. סבן חומרי בניין (1994) בע"מ',
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Rubik:wght@400;500;600;700;800;900&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
@@ -126,8 +137,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <SettingsProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </SettingsProvider>
     </QueryClientProvider>
   );
 }
