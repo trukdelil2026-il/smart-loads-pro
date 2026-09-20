@@ -33,7 +33,7 @@ export function buildQuote({ zone, truck, dieselNet, vatRate, actualKm }: Pricin
   const liters = roundTripKm / spec.kmPerLiter + spec.craneHours * spec.ptoLitersPerHour;
   const fuelCost = liters * dieselNet;
 
-  const basePrice = truck === "crane" ? zone.cranePrice : flatbedPrice(zone.cranePrice);
+  const basePrice = truck === "crane" ? zone.cranePrice : flatbedPrice(zone.code, zone.cranePrice);
   const extraKm = Math.max(0, km - zone.km);
   const extraKmCost = extraKm * spec.extraKmRate;
   const priceBeforeVat = Math.round(basePrice + extraKmCost);

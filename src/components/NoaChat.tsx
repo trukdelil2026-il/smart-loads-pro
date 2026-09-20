@@ -12,6 +12,7 @@ interface Msg {
   role: "user" | "assistant";
   text: string;
   quote?: Quote | undefined;
+  destinationQuery?: string | undefined;
   target?: MapTarget | undefined;
   time: string;
 }
@@ -19,7 +20,8 @@ interface Msg {
 const now = () => new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
 
 function detectTruck(text: string): TruckKind {
-  if (/הובלה בלבד|בלי מנוף|ללא מנוף|איסוזו|עלי|משטח בלבד/.test(text)) return "flatbed";
+  if (/הובלה בלבד|בלי מנוף|ללא מנוף|איסוזו|עלי|משטח בלבד|ללא פריקה|פלטה/.test(text))
+    return "flatbed";
   return "crane";
 }
 
@@ -35,7 +37,7 @@ export function NoaChat({
     {
       id: "hello",
       role: "assistant",
-      text: "היי! אני נועה מהמוקד של סבן 👋\nתכתוב לי כתובת יעד (רחוב, מספר, עיר) ואם צריך מנוף — ואני מחזירה ברקוד, מרחק, עלות סולר ומחיר מומלץ.",
+      text: 'שלום ראמי, יואב והראל! אני נועה AI — מוקד תמחור, ניתוב ולוגיסטיקה של ח. סבן חומרי בניין (1994) בע"מ 🏗️\nנקודת המוצא: מגרש סבן (החרש 10, הוד השרון).\nכתבו לי כתובת יעד (למשל: סוקולוב 15 רמת השרון, 4 משטחים) וסוג הובלה — ואשלוף מיד ברקוד קטלוג, שיוך נהג, חישוב סולר ומחיר מדויק עם אפשרות שמירה ל-Google Sheets.',
       time: now(),
     },
   ]);
@@ -76,12 +78,15 @@ export function NoaChat({
         subtitle: `ברקוד ${quote.barcode}`,
       };
       context = [
-        `אזור: ${zone.name}`,
-        `ברקוד: ${quote.barcode} (${TRUCKS[truck].series})`,
-        `משאית: ${quote.truckName}, נהג ${quote.driver}`,
-        `מרחק: ${quote.km} ק"מ, זמן הגעה ${quote.etaMinutes} דק'`,
-        `סולר: ${quote.liters} ליטר = ${shekel(quote.fuelCost)} (שער ${settings.dieselNet} ₪/ל')`,
-        `מחיר לפני מע"מ: ${shekel(quote.priceBeforeVat)}, כולל מע"מ ${settings.vatRate}%: ${shekel(quote.priceWithVat)}`,
+        `יעד מבוקש: ${text}`,
+        `אזור שיוך בקטלוג: ${zone.name}`,
+        `ברקוד שירות: ${quote.barcode} (${TRUCKS[truck].series})`,
+        `משאית ונהג מוקצים: ${quote.truckName}, נהג ${quote.driver}`,
+        `מרחק נסיעה בכביש: ${quote.km} ק"מ (זמן משוער: ${quote.etaMinutes} דק')`,
+        `צריכת סולר משוערת: ${quote.liters} ליטר (~${shekel(quote.fuelCost)} עלות דלק, שער ${settings.dieselNet} ₪/ל')`,
+        `מחיר מומלץ לפני מע"מ: ${shekel(quote.priceBeforeVat)}`,
+        `סה"כ כולל מע"מ (${settings.vatRate}%): ${shekel(quote.priceWithVat)}`,
+        `פירוט תמחור: מחיר בסיס ${shekel(quote.basePrice)}${quote.extraKm > 0 ? ` + ${quote.extraKm} ק"מ עודף` : ""}`,
       ].join("\n");
     }
 
@@ -89,7 +94,15 @@ export function NoaChat({
       const res = await askNoa({ data: { message: text, history, context } });
       setMsgs((m) => [
         ...m,
-        { id: crypto.randomUUID(), role: "assistant", text: res.text, quote, target, time: now() },
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          text: res.text,
+          quote,
+          destinationQuery: text,
+          target,
+          time: now(),
+        },
       ]);
     } catch {
       setMsgs((m) => [
@@ -98,9 +111,10 @@ export function NoaChat({
           id: crypto.randomUUID(),
           role: "assistant",
           text: quote
-            ? "הנה התמחור מהמחירון הפנימי 👇"
-            : "לא זיהיתי עיר בכתובת. תכתוב לי שם עיר או אזור מדויק בבקשה.",
+            ? "הנה כרטיס התמחור והניתוב הרשמי מוכן עבורך 👇"
+            : "לא זיהיתי יעד מוכר בטקסט. אנא ציין שם עיר או יישוב (לדוגמה: רעננה, פתח תקווה, שוהם, נתניה).",
           quote,
+          destinationQuery: text,
           target,
           time: now(),
         },
@@ -120,8 +134,14 @@ export function NoaChat({
         >
           <ArrowRight className="size-6" />
         </button>
-        <div className="grid size-11 shrink-0 place-items-center rounded-full bg-white/25 text-xl">
-          👩‍💼
+        <div className="relative size-11 shrink-0 overflow-hidden rounded-full ring-2 ring-white/60 shadow">
+          <img
+            src="/src/assets/images/saban_fleet_ui_1789907656504.jpg"
+            alt="נועה - מוקד סבן"
+            referrerPolicy="no-referrer"
+            className="h-full w-full object-cover object-top scale-150"
+          />
+          <span className="absolute bottom-0 right-0 size-3 rounded-full bg-emerald-400 ring-2 ring-white" />
         </div>
         <div className="min-w-0">
           <div className="truncate text-base font-bold">נועה AI - מוקד לוגיסטיקה ותמחור סבן</div>
@@ -145,6 +165,7 @@ export function NoaChat({
               {m.quote && (
                 <QuoteCard
                   quote={m.quote}
+                  destinationQuery={m.destinationQuery}
                   onShowRoute={m.target ? () => onShowRoute(m.target!) : undefined}
                 />
               )}
