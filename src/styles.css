@@ -142,3 +142,113 @@
     color: var(--color-foreground);
   }
 }
+
+/* Saban Map Markers, Pins & Tooltips */
+.saban-pin {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  font-weight: 900;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+}
+
+.saban-pin:hover {
+  transform: scale(1.15);
+  z-index: 9999 !important;
+}
+
+.saban-pin-origin {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  font-size: 1.25rem;
+}
+
+.saban-pin-target {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  font-size: 1.35rem;
+  position: relative;
+}
+
+.saban-pin-zone {
+  background: #ffffff;
+  color: #1e293b;
+  border: 2px solid #0284c7;
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.dark .saban-pin-zone {
+  background: #0f172a;
+  color: #f1f5f9;
+  border-color: #38bdf8;
+}
+
+.saban-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid #f59e0b;
+  animation: sabanPulseAnim 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes sabanPulseAnim {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.saban-tip {
+  font-family: inherit;
+  direction: rtl;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  padding: 4px 10px;
+  background-color: var(--color-card, #ffffff);
+  color: var(--color-foreground, #0f172a);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.saban-tip::before {
+  border-top-color: var(--color-card, #ffffff) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  direction: rtl;
+  text-align: right;
+  border-radius: 1rem !important;
+  font-family: inherit;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-card, #ffffff) !important;
+  color: var(--color-foreground, #0f172a) !important;
+  padding: 4px !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--color-card, #ffffff) !important;
+}
+
+.saban-route {
+  stroke-dasharray: 8 6;
+  animation: sabanDashAnim 1.5s linear infinite;
+}
+
+@keyframes sabanDashAnim {
+  to {
+    stroke-dashoffset: -28;
+  }
+}

@@ -178,7 +178,19 @@ function Index() {
                 </div>
               }
             >
-              <SabanMap target={target} />
+              <SabanMap
+                target={target}
+                onSelectZone={(selectedZone) => {
+                  setQuery(selectedZone.name);
+                  setTarget({
+                    name: selectedZone.name,
+                    lat: selectedZone.lat,
+                    lng: selectedZone.lng,
+                    subtitle: `ברקוד מחירון ${selectedZone.code}`,
+                    zone: selectedZone,
+                  });
+                }}
+              />
             </React.Suspense>
           </ClientOnly>
         </section>
