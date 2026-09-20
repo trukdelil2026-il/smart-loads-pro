@@ -15,7 +15,8 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { shekel } from "@/lib/pricing";
+import { shekel, calculateAvgFuelCost } from "@/lib/pricing";
+import { findZone } from "@/lib/catalog";
 import { toast } from "sonner";
 import { DEPOSITS } from "@/lib/skuConverter";
 
@@ -119,6 +120,11 @@ export function SabanDispatchBoardTab() {
   const vat18 = subtotalBeforeVat * 0.18;
   const grandTotal = subtotalBeforeVat + vat18;
 
+  // Zone, District and Fuel calculation for destination
+  const matchedZone = findZone(destination);
+  const destinationDistrict = matchedZone?.district || "מחוז המרכז";
+  const fuelStats = matchedZone ? calculateAvgFuelCost(matchedZone.km, 6.5) : null;
+
   // Waze Direct Navigation Link
   const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(destination)}&navigate=yes`;
 
@@ -129,7 +135,7 @@ export function SabanDispatchBoardTab() {
 מספר תעודת משלוח: *${docNumber}*
 שם לקוח: *${clientName}*
 טלפון לקוח: ${clientPhone}
-כתובת אספקה: *${destination}*
+כתובת אספקה: *${destination}* (מחוז: ${destinationDistrict})
 
 🧭 *ניווט Waze ישיר:*
 ${wazeUrl}
@@ -145,18 +151,19 @@ ${items.map((i, idx) => `• ${i.name} — ${i.qty} ${i.unit}`).join("\n")}
 ⚠️ *נא להחתים את הלקוח פיזית על התעודה ולשמור את דיסקית הטכוגרף!*`;
   };
 
-  // WhatsApp Manager Card (WITH PRICES & VAT!)
+  // WhatsApp Manager Card (WITH PRICES, DISTRICT & DIESEL AUDIT!)
   const generateManagerWhatsAppCard = () => {
     return `*כרטיס הזמנה ושיגור מנהל - סבן חומרי בניין* 📋
 תעודה: *${docNumber}* | תאריך: ${new Date().toLocaleDateString("he-IL")}
 לקוח: *${clientName}* (${clientPhone})
-יעד: ${destination}
+יעד: ${destination} · מחוז: ${destinationDistrict}
 משאית ונהג: ${truckName} (${driver})
 
 📦 *פירוט פריטים:*
 ${items.map((i) => `• ${i.name} (${i.qty} ${i.unit}) — ${shekel(i.price)}`).join("\n")}
 
 🚚 *הובלה:* ${shekel(deliveryPrice)}
+${fuelStats ? `⛽ *עלות ממוצעת סולר:* כ-${shekel(fuelStats.avgFuelCost)} (~${fuelStats.avgDieselLiters} ליטר)\n` : ""}\
 🏷️ *פקדונות:* ${activeBalesCharged} בלות (${shekel(balesDepositCost)}) + ${activePalletsCharged} משטחים (${shekel(palletsDepositCost)})
 ${returnedCredit > 0 ? `🔄 *זיכוי פקדונות מהשטח:* -${shekel(returnedCredit)}\n` : ""}\
 *סה״כ לפני מע״מ:* ${shekel(subtotalBeforeVat)}
@@ -236,7 +243,21 @@ ${returnedCredit > 0 ? `🔄 *זיכוי פקדונות מהשטח:* -${shekel(r
         </div>
 
         <div>
-          <label className="font-bold text-foreground block mb-1">כתובת יעד:</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="font-bold text-foreground block">כתובת יעד:</label>
+            {matchedZone && (
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2 py-0.5 text-[11px] font-black">
+                  📍 {destinationDistrict}
+                </span>
+                {fuelStats && (
+                  <span className="rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 px-2 py-0.5 text-[11px] font-black">
+                    ⛽ סולר ממוצע: {shekel(fuelStats.avgFuelCost)}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
           <input
             value={destination}
             onChange={(e) => setDestination(e.target.value)}

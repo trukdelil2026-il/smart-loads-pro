@@ -48,7 +48,63 @@ export interface Zone {
   lat: number;
   lng: number;
   terms: string[];
+  district: string;
+  mainDistrict: string;
 }
+
+const DISTRICT_MAP: Record<number, { district: string; mainDistrict: string }> = {
+  18050: { district: "מחוז המרכז (דרום השרון)", mainDistrict: "השרון והמרכז" },
+  18051: { district: "מחוז המרכז (דרום השרון)", mainDistrict: "השרון והמרכז" },
+  18055: { district: "מחוז המרכז (שרון דרומי)", mainDistrict: "השרון והמרכז" },
+  18056: { district: "מחוז המרכז (חוף השרון)", mainDistrict: "השרון והמרכז" },
+  18057: { district: "מחוז המרכז (דרום השרון)", mainDistrict: "השרון והמרכז" },
+  18058: { district: "מחוז המרכז (דרום השרון)", mainDistrict: "השרון והמרכז" },
+  18060: { district: "מחוז תל אביב (הרצליה-רמה״ש)", mainDistrict: "תל אביב" },
+  18065: { district: "מחוז תל אביב (צפון)", mainDistrict: "תל אביב" },
+  18070: { district: "מחוז תל אביב (מרכז)", mainDistrict: "תל אביב" },
+  18075: { district: "מחוז תל אביב (גוש דן)", mainDistrict: "תל אביב" },
+  18078: { district: "מחוז תל אביב / מרכז (דן)", mainDistrict: "תל אביב" },
+  18080: { district: "מחוז המרכז (בקעת אונו)", mainDistrict: "המרכז" },
+  18081: { district: "מחוז המרכז (בקעת אונו)", mainDistrict: "המרכז" },
+  18085: { district: "מחוז תל אביב (חולון-בת ים)", mainDistrict: "תל אביב" },
+  18086: { district: "מחוז תל אביב (יפו)", mainDistrict: "תל אביב" },
+  18089: { district: "מחוז המרכז (שפלה דרומית)", mainDistrict: "המרכז והשפלה" },
+  18090: { district: "מחוז המרכז (ראשון לציון)", mainDistrict: "המרכז והשפלה" },
+  18091: { district: "מחוז המרכז (שפלה)", mainDistrict: "המרכז והשפלה" },
+  18092: { district: "מחוז המרכז (שפלה ורחובות)", mainDistrict: "המרכז והשפלה" },
+  18093: { district: "מחוז המרכז (חבל מודיעין)", mainDistrict: "המרכז והשפלה" },
+  18094: { district: "מחוז המרכז (מודיעין-מכבים)", mainDistrict: "המרכז והשפלה" },
+  18095: { district: "מחוז המרכז (פ״ת וראש העין)", mainDistrict: "המרכז" },
+  18096: { district: "מחוז המרכז (שפלה - רמלה לוד)", mainDistrict: "המרכז והשפלה" },
+  18097: { district: "מחוז המרכז (מרכז-מזרח)", mainDistrict: "המרכז" },
+  18098: { district: "מחוז יהודה ושומרון (מערב שומרון)", mainDistrict: "יהודה ושומרון" },
+  18099: { district: "מחוז הדרום (אשדוד ומישור החוף)", mainDistrict: "הדרום" },
+  18100: { district: "מחוז יהודה ושומרון", mainDistrict: "יהודה ושומרון" },
+  18101: { district: "מחוז יהודה ושומרון (אריאל)", mainDistrict: "יהודה ושומרון" },
+  18102: { district: "מחוז המרכז / יו״ש (חשמונאים)", mainDistrict: "יהודה ושומרון" },
+  18103: { district: "מחוז המרכז (חבל מודיעין)", mainDistrict: "המרכז והשפלה" },
+  18104: { district: "מחוז המרכז (שרון מזרחי)", mainDistrict: "השרון והמרכז" },
+  18105: { district: "מחוז יהודה ושומרון (שומרון)", mainDistrict: "יהודה ושומרון" },
+  18106: { district: "מחוז יהודה ושומרון (בנימין)", mainDistrict: "יהודה ושומרון" },
+  18108: { district: "מחוז המרכז (לב השרון)", mainDistrict: "השרון והמרכז" },
+  18109: { district: "מחוז המרכז (שרון צפוני)", mainDistrict: "השרון והמרכז" },
+  18110: { district: "מחוז המרכז (גוש תל מונד)", mainDistrict: "השרון והמרכז" },
+  18111: { district: "מחוז המרכז (נתניה ושרון)", mainDistrict: "השרון והמרכז" },
+  18112: { district: "מחוז המרכז (לב השרון)", mainDistrict: "השרון והמרכז" },
+  18113: { district: "מחוז חיפה (חדרה והסביבה)", mainDistrict: "חיפה והצפון" },
+  18114: { district: "מחוז המרכז (לב השרון)", mainDistrict: "השרון והמרכז" },
+  18115: { district: "מחוז המרכז (עמק חפר)", mainDistrict: "השרון והמרכז" },
+  18116: { district: "מחוז המרכז (דרום השרון)", mainDistrict: "השרון והמרכז" },
+  18117: { district: "מחוז המרכז (עמק איילון)", mainDistrict: "המרכז והשפלה" },
+  18118: { district: "מחוז המרכז (עמק חפר)", mainDistrict: "השרון והמרכז" },
+  18120: { district: "מחוז חיפה (חוף הכרמל)", mainDistrict: "חיפה והצפון" },
+  18130: { district: "מחוז חיפה (מפרץ חיפה)", mainDistrict: "חיפה והצפון" },
+  18145: { district: "מחוז ירושלים (פרוזדור י-ם)", mainDistrict: "ירושלים" },
+  18146: { district: "מחוז חיפה (זכרון וחוף הכרמל)", mainDistrict: "חיפה והצפון" },
+  18147: { district: "מחוז ירושלים", mainDistrict: "ירושלים" },
+  18148: { district: "מחוז המרכז (עמק חפר)", mainDistrict: "השרון והמרכז" },
+  18027: { district: "מגרש סבן (הוד השרון)", mainDistrict: "מגרש סבן" },
+};
 
 const raw: Array<[number, string, number, number, number, number, string[]]> = [
   [18050, "הוד השרון", 280, 6, 32.1556, 34.8885, ["הוד השרון", "הוד"]],
@@ -152,15 +208,20 @@ const raw: Array<[number, string, number, number, number, number, string[]]> = [
   ],
 ];
 
-export const ZONES: Zone[] = raw.map(([code, name, cranePrice, km, lat, lng, terms]) => ({
-  code,
-  name,
-  cranePrice,
-  km,
-  lat,
-  lng,
-  terms: [name, ...terms],
-}));
+export const ZONES: Zone[] = raw.map(([code, name, cranePrice, km, lat, lng, terms]) => {
+  const d = DISTRICT_MAP[code] || { district: "מחוז המרכז", mainDistrict: "המרכז" };
+  return {
+    code,
+    name,
+    cranePrice,
+    km,
+    lat,
+    lng,
+    terms: [name, ...terms],
+    district: d.district,
+    mainDistrict: d.mainDistrict,
+  };
+});
 
 /** Flatbed (Isuzu 5.5 ton / Ali) catalog overrides */
 export const FLATBED_OVERRIDES: Record<number, { price: number; km: number }> = {

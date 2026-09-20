@@ -52,19 +52,20 @@ export function SabanQuickQuoteTab({
     if (!quote) return;
     const text = `*הצעת מחיר להובלה - ח. סבן חומרי בניין (1994) בע״מ* 🏗️
 מוצא: ${ORIGIN.label}
-יעד: ${quote.zoneName} (מרחק כ-${quote.km} ק״מ)
+יעד: ${quote.zoneName} · מחוז: ${quote.district} (מרחק כ-${quote.km} ק״מ)
 סוג הובלה: ${quote.truckName} (נהג: ${quote.driver})
 ברקוד מחירון סבן: ${quote.barcode}
 
 *מחיר הובלה:* ${shekel(quote.priceBeforeVat)} + מע״מ 18%
 *סה״כ לתשלום כולל מע״מ:* ${shekel(quote.priceWithVat)}
+*עלות ממוצעת סולר למסלול:* כ-${shekel(quote.avgFuelCost)} (~${quote.avgDieselLiters} ליטר)
 זמן הגעה משוער: כ-${quote.etaMinutes} דקות
 
 להזמנות ותיאום אספקה: 09-7411222 / מענה בוואטסאפ`;
 
     navigator.clipboard.writeText(text);
     setCopied(true);
-    toast.success("הצעת המחיר הועתקה ללוח — מוכנה להדבקה בוואטסאפ ללקוח!");
+    toast.success("הצעת המחיר הועתקה ללוח — כולל מחוז ועלות סולר ממוצעת!");
     setTimeout(() => setCopied(false), 2500);
   };
 
@@ -193,8 +194,11 @@ export function SabanQuickQuoteTab({
         <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-lg font-black text-foreground">{quote.zoneName}</span>
+                <span className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-xs font-black text-blue-700 dark:text-blue-300">
+                  📍 {quote.district}
+                </span>
                 <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-black text-brand">
                   ברקוד {quote.barcode}
                 </span>
@@ -202,7 +206,7 @@ export function SabanQuickQuoteTab({
                   זוהה במחירון סבן ✓
                 </span>
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
+              <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-3">
                 <span>
                   מרחק מהחרש 10: {quote.km} ק״מ (הלוך ושוב: {quote.roundTripKm} ק״מ)
                 </span>
@@ -219,6 +223,36 @@ export function SabanQuickQuoteTab({
               <span className="text-[11px] text-muted-foreground">
                 ({shekel(quote.priceBeforeVat)} לפני מע״מ 18%)
               </span>
+            </div>
+          </div>
+
+          {/* District & Fuel Summary Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl bg-muted/30 border border-border/80 p-3">
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                <MapPin className="size-4.5" />
+              </span>
+              <div>
+                <span className="text-[11px] font-bold text-muted-foreground block">שיוך מחוז גיאוגרפי:</span>
+                <span className="text-sm font-black text-foreground">{quote.district}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                <Fuel className="size-4.5" />
+              </span>
+              <div>
+                <span className="text-[11px] font-bold text-muted-foreground block">עלות ממוצעת סולר (ליעד זה):</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-sm font-black text-amber-600 dark:text-amber-400">
+                    {shekel(quote.avgFuelCost)}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    (~{quote.avgDieselLiters} ליטר ממוצע צי סבן)
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
